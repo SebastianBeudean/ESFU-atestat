@@ -1,28 +1,6 @@
 import streamlit as st
 import time
-from database.connection import supabase
-
-def verificare_email_parola(email, parola):
-    rezultat = (
-        supabase.table("utilizatori")
-        .select("*")
-        .eq("email", email)
-        .execute()
-    )
-
-    if not rezultat.data:
-        return None
-    if rezultat.data[0]["parola"] != parola:
-        return None
-
-    rol = (
-        supabase.table("roluri")
-        .select("nume")
-        .eq("id", rezultat.data[0]["rol_id"])
-        .execute()
-    )
-
-    return rol.data[0]["nume"]
+from app.pagini.functii.date_utilizatori import get_rol, get_userid
 
 def autentificare():
 
@@ -40,20 +18,20 @@ def autentificare():
         signup = col2.form_submit_button("Înscriere Student")
 
     if login:
-        rol = verificare_email_parola(email, parola)
-        if rol:
-            st.session_state.user = rol
+        st.session_state.user_id = get_userid(email, parola)
+        if st.session_state.user_id is not None:
+            st.session_state.user_rol = get_rol()
             st.success("Autentificare realizată cu succes")
-            time.sleep(1.5)
+            time.sleep(0.5)
 
-            if rol == "admin":
-                st.session_state.pagina = "panou_general"
+            if st.session_state.user_rol == "Admin":
+                st.session_state.pagina = "Panou General"
                 st.rerun()
             else:
-                st.session_state.pagina = "situatie_scolara"
+                st.session_state.pagina = "Situație Școlară"
                 st.rerun()
         else:
             st.error("Email sau parola incorecte.")
     elif signup:
-        st.session_state.pagina = "inscriere_student"
+        st.session_state.pagina = "Înscriere Student"
         st.rerun()

@@ -1,6 +1,7 @@
 import datetime
 import streamlit as st
-from app.pagini.functii.cursuri import nume_specializari
+import time
+from app.pagini.functii.date_cursuri import nume_specializari
 from database.connection import supabase
 
 def creare_student(email, parola, cnp, data_nastere, specializare, numar_transe, nume, prenume):
@@ -36,7 +37,7 @@ def creare_student(email, parola, cnp, data_nastere, specializare, numar_transe,
         "student_id": student_id,
         "specializare_id": specializare_id,
         "numar_transe": numar_transe,
-        "data_inscriere": datetime.datetime.now().isoformat(),
+        "data_inscriere": datetime.datetime.now().isoformat(timespec="seconds"),
         "absolvent": False
     }).execute()
 
@@ -64,10 +65,10 @@ def inscriere_student():
     if sign_up:
         if creare_student(email, parola, cnp, data_nastere, specializare, numar_transe, nume, prenume):
             st.success("Înscriere realizată cu succes.")
-            st.session_state.pagina = "situatie_scolara"
+            time.sleep(1.5)
             st.rerun()
         else:
             st.error("Toate câmpurile trebuie completate")
     elif login:
-        st.session_state.pagina = "autentificare"
+        st.session_state.pagina = "Autentificare"
         st.rerun()
