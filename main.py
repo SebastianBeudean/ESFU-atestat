@@ -1,6 +1,9 @@
 import streamlit as st
+
+from app.pagini.achitare_taxa_inscriere import achitare_taxa_inscriere
 from app.pagini.autentificare import autentificare
 from app.pagini.curriculum import curriculum
+from app.pagini.finante import finante
 from app.pagini.inscriere_student import inscriere_student
 from app.pagini.panou_general import panou_general
 from app.pagini.situatie_scolara import situatie_scolara
@@ -29,6 +32,10 @@ def router_pagini():
         situatie_scolara()
     elif st.session_state.pagina == "Curriculum":
         curriculum()
+    elif st.session_state.pagina == "Achitare Taxă de Înscriere":
+        achitare_taxa_inscriere()
+    elif st.session_state.pagina == "Finanțe":
+        finante()
 
 ###
 router_pagini()

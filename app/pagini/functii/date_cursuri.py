@@ -1,4 +1,3 @@
-import streamlit as st
 from database.connection import supabase
 
 def nume_specializari():
@@ -113,18 +112,23 @@ def get_curriculum_admin(specializare_aleasa):
 
     return rezultat
 
-def get_curriculum_student(student_id):
+def get_curriculum_student(user_id):
+    student = supabase.table("studenti").select("id").eq("utilizator_id", user_id).execute().data
+
+    if not student:
+        return []
+
+    student_id = student[0]["id"]
+
     discipline = supabase.table("discipline").select("id, nume, ore_curs, credite").execute().data or []
     examene = supabase.table("examene").select("id, disciplina_id").execute().data or []
     specializari_discipline = supabase.table("specializari_discipline").select("specializare_id, disciplina_id").execute().data or []
     fise_inscriere = supabase.table("fise_inscriere").select("student_id, specializare_id").execute().data or []
-    specializari = supabase.table("specializari").select("id, nume").execute().data or []
 
     examene_dict = {}
     for e in examene:
-        examene_dict[e["disciplina_id"]] = examene_dict.get(e["disciplina_id"], 0) + 1
-
-    specializari_dict = {s["id"]: s for s in specializari}
+        did = e["disciplina_id"]
+        examene_dict[did] = examene_dict.get(did, 0) + 1
 
     specializare_student = None
     for f in fise_inscriere:
@@ -132,10 +136,13 @@ def get_curriculum_student(student_id):
             specializare_student = f["specializare_id"]
             break
 
+    if specializare_student is None:
+        return []
+
     rezultat = []
 
     for sd in specializari_discipline:
-        if specializare_student != sd["specializare_id"]:
+        if sd["specializare_id"] != specializare_student:
             continue
 
         disciplina = None
@@ -147,17 +154,11 @@ def get_curriculum_student(student_id):
         if not disciplina:
             continue
 
-        numar_examene = examene_dict.get(disciplina["id"], 0)
-
-        specializare = specializari_dict.get(sd["specializare_id"])
-        if not specializare:
-            continue
-
         rezultat.append({
             "Disciplina": disciplina["nume"],
             "Ore curs": disciplina["ore_curs"],
             "Credite": disciplina["credite"],
-            "Număr examene": numar_examene
+            "Număr examene": examene_dict.get(disciplina["id"], 0)
         })
 
     return rezultat

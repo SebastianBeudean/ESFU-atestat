@@ -6,7 +6,7 @@ from database.connection import supabase
 
 def creare_student(email, parola, cnp, data_nastere, specializare, numar_transe, nume, prenume):
 
-    if(
+    if (
         email is None or parola is None or cnp is None or data_nastere is None or
         specializare is None or nume is None or prenume is None
     ):
@@ -30,16 +30,30 @@ def creare_student(email, parola, cnp, data_nastere, specializare, numar_transe,
 
     student_id = student.data[0]["id"]
 
-    specializarea_aleasa = supabase.table("specializari").select("id").eq("nume", specializare).execute()
-    specializare_id = specializarea_aleasa.data[0]["id"]
+    spec = supabase.table("specializari").select("id, cost_specializare").eq("nume", specializare).execute()
+    specializare_id = spec.data[0]["id"]
+    cost = float(spec.data[0]["cost_specializare"])
 
-    supabase.table("fise_inscriere").insert({
+    fisa = supabase.table("fise_inscriere").insert({
         "student_id": student_id,
         "specializare_id": specializare_id,
         "numar_transe": numar_transe,
         "data_inscriere": datetime.datetime.now().isoformat(timespec="seconds"),
         "absolvent": False
     }).execute()
+
+    fisa_id = fisa.data[0]["id"]
+
+    valoare_transa = round(cost / numar_transe, 2)
+
+    for i in range(numar_transe):
+        supabase.table("transe").insert({
+            "fise_inscriere_id": fisa_id,
+            "valoare": valoare_transa,
+            "achitata": False,
+            "numar_transa": i + 1,
+            "data_achitare": None
+        }).execute()
 
     return True
 
@@ -57,7 +71,7 @@ def inscriere_student():
         specializare = st.selectbox("Specializare", options= nume_specializari(), placeholder="Selectați specializarea dorită", index = None)
         numar_transe = st.slider("Număr de tranșe pentru achitarea taxei de înscriere", 1, 8, 1, 1 )
 
-        col1, col2 = st.columns([3, 1.1])
+        col1, col2 = st.columns([3.2, 0.4])
 
         sign_up = col1.form_submit_button("Înscriere")
         login = col2.form_submit_button("Înapoi la autentificare")
@@ -65,7 +79,8 @@ def inscriere_student():
     if sign_up:
         if creare_student(email, parola, cnp, data_nastere, specializare, numar_transe, nume, prenume):
             st.success("Înscriere realizată cu succes.")
-            time.sleep(1.5)
+            time.sleep(1)
+            st.session_state.pagina = "Autentificare"
             st.rerun()
         else:
             st.error("Toate câmpurile trebuie completate")

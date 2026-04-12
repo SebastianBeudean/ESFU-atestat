@@ -259,54 +259,199 @@ def get_examene_count(specializare_aleasa, disciplina_aleasa, tip):
     discipline = supabase.table("discipline").select("id, nume").execute().data or []
     examene = supabase.table("examene").select("id, disciplina_id").execute().data or []
     rezultate = supabase.table("rezultate_examene").select("student_id, examen_id, nota").execute().data or []
+    specializari_discipline = supabase.table("specializari_discipline").select("specializare_id, disciplina_id").execute().data or []
 
-    fise_dict = {f["student_id"]: f for f in fise_inscriere}
     specializari_dict = {s["id"]: s for s in specializari}
     discipline_dict = {d["id"]: d for d in discipline}
     examene_dict = {e["id"]: e for e in examene}
 
+    fisa_student = {}
+    for f in fise_inscriere:
+        fisa_student[f["student_id"]] = f["specializare_id"]
+
+    examene_pe_student = {}
+    for r in rezultate:
+        examene_pe_student.setdefault(r["student_id"], []).append(r)
+
+    discipline_pe_specializare = {}
+    for sd in specializari_discipline:
+        discipline_pe_specializare.setdefault(sd["specializare_id"], set()).add(sd["disciplina_id"])
+
+    examene_pe_disciplina = {}
+    for e in examene:
+        examene_pe_disciplina.setdefault(e["disciplina_id"], []).append(e["id"])
+
     count = 0
 
+    for student in studenti:
+        student_id = student["id"]
+
+        spec_id = fisa_student.get(student_id)
+        if not spec_id:
+            continue
+
+        if specializare_aleasa != "Toate":
+            spec = specializari_dict.get(spec_id)
+            if not spec or spec["nume"] != specializare_aleasa:
+                continue
+
+        discipline_spec = discipline_pe_specializare.get(spec_id, set())
+
+        if disciplina_aleasa != "Toate":
+            discipline_spec = {
+                d_id for d_id in discipline_spec
+                if discipline_dict.get(d_id, {}).get("nume") == disciplina_aleasa
+            }
+
+        examene_expected = set()
+        for d_id in discipline_spec:
+            for ex_id in examene_pe_disciplina.get(d_id, []):
+                examene_expected.add(ex_id)
+
+        rezultate_student = examene_pe_student.get(student_id, [])
+
+        examene_date = set()
+        promovate = 0
+        restante = 0
+
+        for r in rezultate_student:
+            examen = examene_dict.get(r["examen_id"])
+            if not examen:
+                continue
+
+            if examen["id"] not in examene_expected:
+                continue
+
+            examene_date.add(examen["id"])
+
+            if r["nota"] is not None:
+                if r["nota"] >= 5:
+                    promovate += 1
+                else:
+                    restante += 1
+
+        examene_nedate = len(examene_expected - examene_date)
+
+        if tip == "promovate":
+            count += promovate
+        else:
+            count += restante + examene_nedate
+
+    return count
+
+def get_examene_count_situatiescolara(tip):
+    user_id = st.session_state.user_id
+
+    studenti = supabase.table("studenti").select("id, utilizator_id").execute().data or []
+    fise_inscriere = supabase.table("fise_inscriere").select("student_id, specializare_id").execute().data or []
+    specializari_discipline = supabase.table("specializari_discipline").select("specializare_id, disciplina_id").execute().data or []
+    examene = supabase.table("examene").select("id, disciplina_id").execute().data or []
+    rezultate = supabase.table("rezultate_examene").select("student_id, examen_id, nota").execute().data or []
+
+    student_id = None
+    for s in studenti:
+        if s["utilizator_id"] == user_id:
+            student_id = s["id"]
+            break
+
+    if not student_id:
+        return 0
+
+    fisa_spec = None
+    for f in fise_inscriere:
+        if f["student_id"] == student_id:
+            fisa_spec = f["specializare_id"]
+            break
+
+    if not fisa_spec:
+        return 0
+
+    discipline_spec = set()
+    for sd in specializari_discipline:
+        if sd["specializare_id"] == fisa_spec:
+            discipline_spec.add(sd["disciplina_id"])
+
+    examene_expected = set()
+    for e in examene:
+        if e["disciplina_id"] in discipline_spec:
+            examene_expected.add(e["id"])
+
+    rezultate_map = {}
     for r in rezultate:
-        if r["nota"] is None:
-            continue
+        if r["student_id"] == student_id:
+            rezultate_map[r["examen_id"]] = r["nota"]
 
-        if tip == "promovate" and r["nota"] < 5:
-            continue
+    count = 0
 
-        if tip == "restante" and r["nota"] >= 5:
-            continue
+    for examen_id in examene_expected:
+        nota = rezultate_map.get(examen_id)
 
-        student = None
-        for s in studenti:
-            if s["id"] == r["student_id"]:
-                student = s
-                break
-        if not student:
-            continue
+        if tip == "promovat":
+            if nota is not None and nota >= 5:
+                count += 1
 
-        fisa = fise_dict.get(student["id"])
-        if not fisa:
-            continue
+        elif tip == "nepromovat":
+            if nota is None or nota < 5:
+                count += 1
 
-        specializare = specializari_dict.get(fisa["specializare_id"])
-        if not specializare:
-            continue
+    return count
 
-        if specializare_aleasa != "Toate" and specializare["nume"] != specializare_aleasa:
-            continue
+def get_rezultate_situatiescolara():
+    utilizator_id = st.session_state.user_id
+    studenti = supabase.table("studenti").select("id, utilizator_id").execute().data or []
+    examene = supabase.table("examene").select("id, disciplina_id, numar_examen, data_examen").execute().data or []
+    discipline = supabase.table("discipline").select("id, nume").execute().data or []
+    rezultate = supabase.table("rezultate_examene").select("student_id, examen_id, nota").execute().data or []
 
+    student_id = None
+    for s in studenti:
+        if s["utilizator_id"] == utilizator_id:
+            student_id = s["id"]
+            break
+
+    if not student_id:
+        return []
+
+    discipline_dict = {}
+    for d in discipline:
+        discipline_dict[d["id"]] = d["nume"]
+
+    examene_dict = {}
+    for e in examene:
+        examene_dict[e["id"]] = e
+
+    rezultat_student = []
+    for r in rezultate:
+        if r["student_id"] == student_id:
+            rezultat_student.append(r)
+
+    rezultat = []
+
+    for r in rezultat_student:
         examen = examene_dict.get(r["examen_id"])
         if not examen:
             continue
 
-        disciplina = discipline_dict.get(examen["disciplina_id"])
-        if not disciplina:
-            continue
+        rezultat.append({
+            "Disciplina": discipline_dict.get(examen["disciplina_id"]),
+            "Număr examen": examen["numar_examen"],
+            "Dată examen": examen["data_examen"],
+            "Notă": r["nota"]
+        })
 
-        if disciplina_aleasa != "Toate" and disciplina["nume"] != disciplina_aleasa:
-            continue
+    return rezultat
 
-        count += 1
+def adauga_nume_prenume_foaie(date_foaie_matricola):
+    if not date_foaie_matricola:
+        return []
 
-    return count
+    nume_prenume = get_numeprenume_utilizator_curent()
+
+    rezultat = []
+    for row in date_foaie_matricola:
+        row_nou = dict(row)
+        row_nou["Student"] = nume_prenume
+        rezultat.append(row_nou)
+
+    return rezultat
+

@@ -6,13 +6,13 @@ def autentificare():
 
     st.header("Autentificare și Înregistrare")
     st.divider()
-
+    stanga, dreapta = st.columns([1, 1])
     with st.form("form_autentificare"):
         email = st.text_input("Email")
         parola = st.text_input("Parolă", type="password")
 
         st.markdown("---")
-        col1, col2 = st.columns([3, 0.9])
+        col1, col2 = st.columns([4.5, 0.5])
 
         login = col1.form_submit_button("Autentificare")
         signup = col2.form_submit_button("Înscriere Student")
