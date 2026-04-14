@@ -1,11 +1,12 @@
 import streamlit as st
+import time
 from app.pagini.functii.date_finante import get_transe_numar_student, get_transe_student, plateste_prima_transa_neachitata, get_transe_achitate_selectbox
 from app.pagini.sidebar import sidebar_navigare
 from app.pagini.functii.generatoare_CSV import genereaza_chitanta_csv
 
 def achitare_taxa_inscriere():
     sidebar_navigare()
-    st.header("Achitare Taxa Inscriere")
+    st.header("Achitare Taxă de Înscriere")
     st.divider()
     st.subheader("Tranșe")
 
@@ -23,6 +24,7 @@ def achitare_taxa_inscriere():
         if plata_online:
             if plateste_prima_transa_neachitata():
                 st.success("Plată realizată cu succes.")
+                time.sleep(1.5)
                 st.rerun()
             else:
                 st.info("Toate tranșele au fost deja achitate.")
