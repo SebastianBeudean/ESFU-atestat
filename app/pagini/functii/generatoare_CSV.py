@@ -65,7 +65,7 @@ def get_date_absolvent():
 
     utilizatori = supabase.table("utilizatori").select("id, nume, prenume").execute().data or []
     studenti = supabase.table("studenti").select("id, utilizator_id").execute().data or []
-    fise_inscriere = supabase.table("fise_inscriere").select("student_id, specializare_id").execute().data or []
+    fise_inscriere = supabase.table("fise_inscriere").select("student_id, specializare_id, absolvent").execute().data or []
     specializari = supabase.table("specializari").select("id, nume").execute().data or []
 
     utilizator = None
@@ -87,9 +87,11 @@ def get_date_absolvent():
         return ""
 
     specializare_id = None
+    absolvent = None
     for f in fise_inscriere:
         if f["student_id"] == student_id:
             specializare_id = f["specializare_id"]
+            absolvent = f["absolvent"]
             break
 
     if not specializare_id:
@@ -107,9 +109,9 @@ def get_date_absolvent():
     rezultat = [{
         "Nume": utilizator["nume"],
         "Prenume": utilizator["prenume"],
-        "Specializare": specializare_nume
+        "Specializare": specializare_nume,
+        "Absolvent": absolvent
     }]
 
-    import pandas as pd
     df = pd.DataFrame(rezultat)
     return df.to_csv(index=False)

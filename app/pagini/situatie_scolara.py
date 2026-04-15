@@ -1,6 +1,6 @@
 import streamlit as st
 from app.pagini.functii.date_utilizatori import get_examene_count_situatiescolara, get_rezultate_situatiescolara, \
-    adauga_nume_prenume_foaie
+    adauga_nume_prenume_foaie, seteaza_absolvent
 from app.pagini.functii.generatoare_CSV import foaie_matricola_to_csv, get_date_absolvent
 from app.pagini.sidebar import sidebar_navigare
 
@@ -25,13 +25,15 @@ def situatie_scolara():
     col1, col2 = st.columns([1, 2])
     with col1:
         st.download_button(
-        "Descărcare foaie matricolă",
+        "Descărcare Foaie Matricolă",
             data = date_foaie_matricola if date_foaie_matricola else "",
             file_name = f"foaie_matricola.csv",
             mime = "text/csv",
             disabled = not date_foaie_matricola
         )
     with col2:
+        if restante <= 0:
+            seteaza_absolvent()
         st.download_button(
             "Descărcare Diplomă Absolvent",
             data=date_absolvent if date_absolvent else "",

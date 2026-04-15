@@ -455,3 +455,29 @@ def adauga_nume_prenume_foaie(date_foaie_matricola):
 
     return rezultat
 
+def seteaza_absolvent():
+    user_id = st.session_state.user_id
+
+    student = (
+        supabase
+        .table("studenti")
+        .select("id")
+        .eq("utilizator_id", user_id)
+        .execute()
+        .data
+    )
+
+    if not student:
+        return False
+
+    student_id = student[0]["id"]
+
+    rezultat = (
+        supabase
+        .table("fise_inscriere")
+        .update({"absolvent": True})
+        .eq("student_id", student_id)
+        .execute()
+    )
+
+    return True if rezultat.data is not None else False
