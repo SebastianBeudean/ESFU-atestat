@@ -1,9 +1,7 @@
-import os
-from dotenv import load_dotenv
 from supabase import create_client, Client
+import streamlit as st
 
-load_dotenv()
+url: str = st.secrets["DATABASE_URL"]
+key: str = st.secrets["DATABASE_KEY"]
 
-url: str = os.getenv("DATABASE_URL")
-key: str = os.getenv("DATABASE_KEY")
 supabase: Client = create_client(url, key)
